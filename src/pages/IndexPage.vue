@@ -14,69 +14,71 @@
 
       <!-- Preview Section -->
       <div class="col-12 col-md-6">
-        <avatar-preview
-          :svg="svg"
-          :is-generating="isGenerating"
-          :error="error"
-          :size="options.size.value"
-          :background-color="previewBackground"
-          :border-radius="options.radius.value"
-          :show-actions="true"
-          @regenerate="generate"
-          @randomize="handleRandomize"
-          @copy-s-v-g="copySVG"
-        />
+        <div class="preview-sticky-wrapper">
+          <avatar-preview
+            :svg="svg"
+            :is-generating="isGenerating"
+            :error="error"
+            :size="options.size.value"
+            :background-color="previewBackground"
+            :border-radius="options.radius.value"
+            :show-actions="true"
+            @regenerate="generate"
+            @randomize="handleRandomize"
+            @copy-s-v-g="copySVG"
+          />
 
-        <!-- Avatar Info -->
-        <q-card flat bordered class="q-mt-md">
-          <q-card-section>
-            <div class="text-subtitle2 q-mb-sm">
-              <q-icon name="info" class="q-mr-xs" />
-              Current Configuration
-            </div>
-            <div class="text-caption">
-              <div><strong>Style:</strong> {{ getCurrentStyleLabel() }}</div>
-              <div><strong>Seed:</strong> {{ options.seed.value }}</div>
-              <div><strong>Size:</strong> {{ options.size.value }}px</div>
-            </div>
-          </q-card-section>
-        </q-card>
+          <!-- Avatar Info -->
+          <q-card flat bordered class="q-mt-md">
+            <q-card-section>
+              <div class="text-subtitle2 q-mb-sm">
+                <q-icon name="info" class="q-mr-xs" />
+                Current Configuration
+              </div>
+              <div class="text-caption">
+                <div><strong>Style:</strong> {{ getCurrentStyleLabel() }}</div>
+                <div><strong>Seed:</strong> {{ options.seed.value }}</div>
+                <div><strong>Size:</strong> {{ options.size.value }}px</div>
+              </div>
+            </q-card-section>
+          </q-card>
 
-        <!-- Favorites -->
-        <q-card flat bordered class="q-mt-md" v-if="favorites.length > 0">
-          <q-card-section>
-            <div class="text-subtitle2 q-mb-sm">
-              <q-icon name="favorite" class="q-mr-xs" />
-              Favorites ({{ favorites.length }})
-            </div>
-            <div class="row q-gutter-sm">
-              <q-card
-                v-for="fav in favorites.slice(0, 6)"
-                :key="fav.id"
-                flat
-                bordered
-                class="cursor-pointer favorite-card"
-                @click="loadFavorite(fav)"
-              >
-                <q-card-section class="q-pa-sm" v-if="fav.svg">
-                  <div class="favorite-preview" v-html="fav.svg" />
-                </q-card-section>
-                <q-card-section class="q-pa-xs text-center">
-                  <div class="text-caption ellipsis">{{ fav.name }}</div>
-                </q-card-section>
-                <q-btn
+          <!-- Favorites -->
+          <q-card flat bordered class="q-mt-md" v-if="favorites.length > 0">
+            <q-card-section>
+              <div class="text-subtitle2 q-mb-sm">
+                <q-icon name="favorite" class="q-mr-xs" />
+                Favorites ({{ favorites.length }})
+              </div>
+              <div class="row q-gutter-sm">
+                <q-card
+                  v-for="fav in favorites.slice(0, 6)"
+                  :key="fav.id"
                   flat
-                  dense
-                  round
-                  size="xs"
-                  icon="close"
-                  class="absolute-top-right q-ma-xs"
-                  @click.stop="removeFavorite(fav.id)"
-                />
-              </q-card>
-            </div>
-          </q-card-section>
-        </q-card>
+                  bordered
+                  class="cursor-pointer favorite-card"
+                  @click="loadFavorite(fav)"
+                >
+                  <q-card-section class="q-pa-sm" v-if="fav.svg">
+                    <div class="favorite-preview" v-html="fav.svg" />
+                  </q-card-section>
+                  <q-card-section class="q-pa-xs text-center">
+                    <div class="text-caption ellipsis">{{ fav.name }}</div>
+                  </q-card-section>
+                  <q-btn
+                    flat
+                    dense
+                    round
+                    size="xs"
+                    icon="close"
+                    class="absolute-top-right q-ma-xs"
+                    @click.stop="removeFavorite(fav.id)"
+                  />
+                </q-card>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
       </div>
 
       <!-- Controls Section -->
@@ -110,6 +112,13 @@
           @download-s-v-g="handleDownloadSVG"
           @save-to-favorites="handleSaveToFavorites"
           @reset="handleReset"
+        />
+
+        <!-- Style-Specific Options -->
+        <style-options
+          :selected-style="options.style.value"
+          :model-value="styleOptions"
+          @update:model-value="handleStyleOptionsChange"
         />
       </div>
     </div>
@@ -151,6 +160,8 @@ import { useQuasar } from 'quasar';
 import { useAvatarGenerator } from '../composables/useAvatarGenerator';
 import AvatarPreview from '../components/AvatarPreview.vue';
 import AvatarControls from '../components/AvatarControls.vue';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import StyleOptions from '../components/StyleOptions.vue';
 import {
   saveConfig,
   loadConfig,
@@ -167,11 +178,13 @@ const $q = useQuasar();
 // Initialize avatar generator
 const {
   options,
+  styleOptions,
   svg,
   isGenerating,
   error,
   generate,
   setOption,
+  setStyleOptions,
   randomize,
   reset,
   downloadPNG,
@@ -199,6 +212,10 @@ const handleRandomize = () => {
     position: 'top',
     timeout: 1500,
   });
+};
+
+const handleStyleOptionsChange = (newStyleOptions: Record<string, unknown>) => {
+  setStyleOptions(newStyleOptions);
 };
 
 const handleDownloadPNG = async () => {
@@ -395,6 +412,34 @@ onMounted(() => {
   max-width: 1400px;
   margin: 0 auto;
 
+  .preview-sticky-wrapper {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+
+    // Hide scrollbar but keep functionality
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+
   .favorite-card {
     width: 80px;
     position: relative;
@@ -416,6 +461,15 @@ onMounted(() => {
         height: 100%;
       }
     }
+  }
+}
+
+// On mobile, disable sticky behavior
+@media (max-width: 1023px) {
+  .preview-sticky-wrapper {
+    position: static !important;
+    max-height: none !important;
+    overflow-y: visible !important;
   }
 }
 </style>

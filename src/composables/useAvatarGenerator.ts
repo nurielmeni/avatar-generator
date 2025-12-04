@@ -20,6 +20,10 @@ export interface AvatarOptions {
   flip: boolean;
 }
 
+export interface StyleSpecificOptions {
+  [key: string]: unknown;
+}
+
 export const defaultOptions: AvatarOptions = {
   style: 'avataaars',
   seed: 'Felix',
@@ -39,6 +43,8 @@ export function useAvatarGenerator(initialOptions?: Partial<AvatarOptions>) {
     ...defaultOptions,
     ...initialOptions,
   });
+
+  const styleOptions = ref<StyleSpecificOptions>({});
 
   const svg = ref<string>('');
   const dataUri = ref<string>('');
@@ -65,18 +71,39 @@ export function useAvatarGenerator(initialOptions?: Partial<AvatarOptions>) {
         throw new Error(`Style "${options.value.style}" (${camelCaseKey}) not found`);
       }
 
-      // Create avatar with current options
+      // Prepare style-specific options with probability adjustments
+      const adjustedStyleOptions = { ...styleOptions.value };
+
+      // For avataaars style, automatically set probabilities to 100 when specific options are selected
+      if (options.value.style === 'avataaars' || options.value.style === 'avataaars-neutral') {
+        // If facialHair is explicitly set, ensure it appears
+        if (adjustedStyleOptions.facialHair && !adjustedStyleOptions.facialHairProbability) {
+          adjustedStyleOptions.facialHairProbability = 100;
+        }
+        // If accessories is explicitly set, ensure it appears
+        if (adjustedStyleOptions.accessories && !adjustedStyleOptions.accessoriesProbability) {
+          adjustedStyleOptions.accessoriesProbability = 100;
+        }
+        // If clothingGraphic is set and clothing hasn't been explicitly chosen,
+        // set clothing to graphicShirt (graphics only appear on graphic shirts)
+        if (adjustedStyleOptions.clothingGraphic && !adjustedStyleOptions.clothing) {
+          adjustedStyleOptions.clothing = ['graphicShirt'];
+        }
+      }
+
+      // Create avatar with current options and style-specific options
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const avatar = createAvatar(style as any, {
         seed: options.value.seed,
         size: options.value.size,
         backgroundColor: options.value.backgroundColor,
-        radius: options.value.radius,
         scale: options.value.scale,
         rotate: options.value.rotate,
         translateX: options.value.translateX,
         translateY: options.value.translateY,
         flip: options.value.flip,
+        // Spread style-specific options (e.g., for avataaars: topType, accessoriesType, etc.)
+        ...adjustedStyleOptions,
       });
 
       // Generate SVG
@@ -99,15 +126,18 @@ export function useAvatarGenerator(initialOptions?: Partial<AvatarOptions>) {
 
   // Set multiple options at once
   const setOptions = (newOptions: Partial<AvatarOptions>) => {
-    options.value = {
-      ...options.value,
-      ...newOptions,
-    };
+    Object.assign(options.value, newOptions);
+  };
+
+  // Set style-specific options
+  const setStyleOptions = (newStyleOptions: StyleSpecificOptions) => {
+    styleOptions.value = newStyleOptions;
   };
 
   // Reset to default options
   const reset = () => {
-    options.value = { ...defaultOptions };
+    Object.assign(options.value, defaultOptions);
+    styleOptions.value = {};
   };
 
   // Randomize seed
@@ -203,12 +233,19 @@ export function useAvatarGenerator(initialOptions?: Partial<AvatarOptions>) {
   watchEffect(() => {
     // Watch all options
     void JSON.stringify(options.value);
+    void JSON.stringify(styleOptions.value);
     void generate();
   });
 
+  // Create individual refs for each option property (for toRefs API)
+  const optionRefs = toRefs(options.value);
+
   return {
-    // State
-    options: toRefs(options.value),
+    // State - expose individual refs for backward compatibility with existing code
+    ...optionRefs,
+    // Also expose options object for access to all options at once
+    options: optionRefs,
+    styleOptions,
     svg,
     dataUri,
     isGenerating,
@@ -218,6 +255,7 @@ export function useAvatarGenerator(initialOptions?: Partial<AvatarOptions>) {
     generate,
     setOption,
     setOptions,
+    setStyleOptions,
     reset,
     randomize,
     downloadPNG,
