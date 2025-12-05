@@ -17,6 +17,7 @@ export default defineConfig({
         'src-electron/**',
         '.quasar/**',
         'dist/**',
+        'editor/**',
       ],
     },
   },
