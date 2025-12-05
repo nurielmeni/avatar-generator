@@ -22,9 +22,10 @@
             <q-btn round flat icon="shuffle" color="primary" @click="store.randomize()" size="md">
               <q-tooltip>Randomize</q-tooltip>
             </q-btn>
-            <q-btn round unelevated color="primary" icon="download" @click="downloadPNG" size="md">
-              <q-tooltip>Download PNG</q-tooltip>
-            </q-btn>
+            <q-fab color="primary" icon="download" direction="down" glossy size="sm">
+              <q-fab-action color="primary" icon="image" label="PNG" @click="downloadPNG" />
+              <q-fab-action color="primary" icon="code" label="SVG" @click="downloadSVG" />
+            </q-fab>
           </div>
         </div>
       </div>
@@ -239,6 +240,22 @@ async function downloadPNG() {
     console.error('Failed to download PNG', e);
   }
 }
+
+// Download avatar as raw SVG
+function downloadSVG() {
+  try {
+    const svg = store.currentAvatar.toString();
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(svgBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `avatar-${Date.now()}.svg`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error('Failed to download SVG', e);
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -314,7 +331,9 @@ async function downloadPNG() {
 
 .editor-options {
   background: white;
-  min-height: 50vh;
+  min-height: 49vh;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
 
   :deep(.q-tab-panel) {
     max-width: 960px;
